@@ -143,7 +143,7 @@ export async function roundRoutes(fastify: FastifyInstance) {
       await cortexClient.subscribeToRound(id, agentIds);
       fastify.log.info(`Subscribed ${agentIds.length} agents to Cortex`);
     } catch (err) {
-      fastify.log.warn('Failed to subscribe to Cortex:', err);
+      fastify.log.warn({ err }, 'Failed to subscribe to Cortex');
     }
 
     await tickScheduler.startRound(id);
@@ -166,7 +166,7 @@ export async function roundRoutes(fastify: FastifyInstance) {
       await cortexClient.subscribeToRound(id, agentIds);
       fastify.log.info(`Subscribed ${agentIds.length} agents to Cortex`);
     } catch (err) {
-      fastify.log.warn('Failed to subscribe to Cortex:', err);
+      fastify.log.warn({ err }, 'Failed to subscribe to Cortex');
     }
 
     await tickScheduler.startRound(id);
@@ -197,7 +197,7 @@ export async function roundRoutes(fastify: FastifyInstance) {
     tickScheduler.stopRound(id);
 
     cortexClient.unsubscribe().catch((err) => {
-      fastify.log.warn('Failed to unsubscribe from Cortex (non-blocking):', err);
+      fastify.log.warn({ err }, 'Failed to unsubscribe from Cortex (non-blocking)');
     });
 
     return { round };
@@ -235,7 +235,7 @@ export async function roundRoutes(fastify: FastifyInstance) {
       const participants = await roundRepository.getParticipants(id);
       const agentIds = participants.map((p) => p.agent_id);
       cortexClient.subscribeToRound(id, agentIds).catch((err) => {
-        fastify.log.warn('Failed to subscribe agent to Cortex (non-blocking):', err);
+        fastify.log.warn({ err }, 'Failed to subscribe agent to Cortex (non-blocking)');
       });
 
       if (agent.tick_interval) {

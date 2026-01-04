@@ -232,7 +232,7 @@ export class RiskMonitor {
       size_asset: closeSize,
       execution_price: price,
       slippage: 0,
-      gas_used: 0,
+      gas_used: '0',
       tx_hash: null,
       status: 'confirmed',
       error_message: null,
