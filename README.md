@@ -1,6 +1,6 @@
 # Cucumber Cerebellum
 
-Backend orchestration service for Cucumber Trading Arena - the central hub that coordinates all system components.
+Backend orchestration service for Cucumber Trading Arena - the central hub that coordinates all system components. Named after the brain's cerebellum which coordinates movement and timing, this service coordinates the timing of trades and the flow of data between all components.
 
 ## System Architecture
 
@@ -72,12 +72,12 @@ Backend orchestration service for Cucumber Trading Arena - the central hub that 
 ## This Repository (cucumber-cerebellum)
 
 The central backend that:
-- Manages agents, rounds, and participants
-- Schedules per-agent tick intervals
-- Publishes ticks to Redis for Cortex consumption
-- Receives trade actions from Cortex and executes them
-- Broadcasts real-time updates via WebSocket
-- Enforces risk management (stop-loss, take-profit)
+- **Manages agents, rounds, and participants**: CRUD operations for all entities, stores configurations in PostgreSQL
+- **Schedules per-agent tick intervals**: Each agent has its own timer (e.g., Agent A ticks every 30s, Agent B every 60s). Uses Node.js `setInterval` per agent, not a global tick
+- **Publishes ticks to Redis for Cortex consumption**: When an agent's timer fires, publishes a message to `arena:ticks:{roundId}:{agentId}` containing market data and the agent's portfolio
+- **Receives trade actions from Cortex and executes them**: Cortex sends POST `/v1/arena/:id/action` with BUY/SELL/HOLD. Cerebellum validates the action, calculates slippage, updates positions and balances
+- **Broadcasts real-time updates via WebSocket**: Uses Socket.IO to push tick, trade, leaderboard, and reasoning events to connected frontends
+- **Enforces risk management (stop-loss, take-profit)**: Before each tick, checks if any positions should be auto-closed based on agent's risk settings
 
 ## Communication Flow
 
@@ -210,7 +210,7 @@ cucumber-cerebellum/
 
 ### Tick Scheduler (Per-Agent Intervals)
 
-Each agent runs on its own independent timer:
+The tick scheduler is the heart of the system. Unlike traditional systems that tick all agents at once, Cucumber uses **per-agent timers**:
 
 ```typescript
 // tick-scheduler.ts
@@ -225,30 +225,75 @@ class TickScheduler {
 }
 ```
 
+**Why per-agent timers?**
+- Agents can have different trading frequencies (fast traders vs patient traders)
+- Prevents all agents from trading at the exact same moment (more realistic)
+- Allows arena operators to set min/max bounds (e.g., 10s-120s) for fairness
+- Agent's tick_interval is locked when joining (stored as `effective_tick_interval`)
+
+**Flow when an agent's timer fires:**
+1. Tick Scheduler creates a unique `tick_id`
+2. Fetches current market prices from `market-data.ts`
+3. Fetches agent's current portfolio (balance + positions) from database
+4. Runs risk checks: if stop-loss or take-profit triggered, auto-closes position
+5. Builds `TickPayload` with all data the AI needs
+6. Publishes to Redis channel `arena:ticks:{roundId}:{agentId}`
+7. Broadcasts tick event to WebSocket clients
+8. Updates leaderboard and broadcasts
+
 ### Tick Payload
 
 What gets sent to Cortex on each tick:
 
 ```typescript
 interface TickPayload {
-  tick_id: string;
-  round_id: string;
-  agent_id: string;
-  tick_number: number;
-  timestamp: string;
+  tick_id: string;          // Unique ID for this tick (used to prevent duplicate actions)
+  round_id: string;         // Which arena/round this is for
+  agent_id: string;         // Which agent should process this
+  tick_number: number;      // Sequential tick count for this agent in this round
+  timestamp: string;        // ISO timestamp of when tick was generated
   market: {
-    ETH_USDC: { price: number; source: string };
+    ETH_USDC: { price: number; source: string };  // Current market price
   };
   portfolio: {
-    balance_usd: number;
-    positions: Position[];
+    balance_usd: number;    // Agent's available cash
+    positions: Position[];  // Agent's open positions (long/short)
   };
   constraints: {
-    max_usd_order: number;
-    allowed_assets: string[];
+    max_usd_order: number;  // Maximum order size allowed
+    allowed_assets: string[]; // Which assets can be traded
   };
 }
 ```
+
+### Trade Execution Flow
+
+When Cortex sends a trade action back:
+
+1. **Validation** (`action-validator.ts`):
+   - Check tick_id matches (prevent replays)
+   - Check agent is still in round
+   - Check action is valid (BUY_MARKET, SELL_MARKET, HOLD)
+   - Check order size within constraints
+
+2. **Leverage Calculation** (`leverage-calculator.ts`):
+   - If agent has 2x leverage and orders $100, effective position is $200
+   - Checks if agent has sufficient margin
+
+3. **Execution** (`execution-engine.ts`):
+   - Calculates slippage based on order size
+   - Updates agent's position in database
+   - Deducts/adds to balance
+
+4. **PnL Update** (`pnl-calculator.ts`):
+   - Calculates realized PnL (if closing position)
+   - Calculates unrealized PnL (mark-to-market)
+   - Updates `round_participants` table
+
+5. **Broadcast**:
+   - Sends trade event via WebSocket
+   - Sends reasoning event (AI's explanation)
+   - Updates and broadcasts leaderboard
 
 ## API Endpoints
 
