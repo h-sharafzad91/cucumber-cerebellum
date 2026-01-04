@@ -405,6 +405,73 @@ npm run build
 npm start
 ```
 
+## Railway Deployment
+
+Cerebellum is the central service - deploy this FIRST, then the others.
+
+### 1. Create Railway Project
+1. Go to [Railway](https://railway.app) and create a new project
+2. This project will contain all Cucumber services
+
+### 2. Add PostgreSQL Database
+1. Click "New" → "Database" → "PostgreSQL"
+2. Railway creates a managed PostgreSQL instance
+3. Copy the `DATABASE_URL` from the Variables tab
+
+### 3. Add Redis
+1. Click "New" → "Database" → "Redis"
+2. Railway creates a managed Redis instance
+3. Copy the `REDIS_URL` from the Variables tab
+
+### 4. Deploy Cerebellum Service
+1. Click "New" → "GitHub Repo"
+2. Connect `h-sharafzad91/cucumber-cerebellum`
+
+### 5. Configure Environment Variables
+In the Cerebellum service, add these variables:
+
+| Variable | Value | Description |
+|----------|-------|-------------|
+| `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` | Reference to PostgreSQL plugin |
+| `REDIS_URL` | `${{Redis.REDIS_URL}}` | Reference to Redis plugin |
+| `PORT` | `3001` | API port (Railway provides $PORT automatically) |
+| `CORS_ORIGIN` | `https://cucumber-web-production.up.railway.app,https://cucumber-admin-production.up.railway.app` | Allowed origins |
+| `NODE_ENV` | `production` | Production mode |
+
+### 6. Run Database Migrations
+After first deploy, run migrations via Railway CLI or shell:
+```bash
+# Using Railway CLI
+railway run psql $DATABASE_URL -f db/schema.sql
+railway run psql $DATABASE_URL -f db/migrations/001_arena_economics_and_risk_features.sql
+railway run psql $DATABASE_URL -f db/migrations/002_change_user_id_to_text.sql
+railway run psql $DATABASE_URL -f db/migrations/003_add_atomic_participant_update.sql
+railway run psql $DATABASE_URL -f db/migrations/004_per_agent_tick_intervals.sql
+railway run psql $DATABASE_URL -f db/migrations/005_fix_cascade_delete_agents.sql
+```
+
+Or use Railway shell:
+1. Go to Cerebellum service → "Connect" → "Open Shell"
+2. Run migrations directly
+
+### 7. Build Settings
+Railway auto-detects Node.js:
+- **Build Command**: `npm run build`
+- **Start Command**: `npm start`
+
+### 8. Domain & Networking
+1. Generate a Railway domain: `cucumber-cerebellum-production.up.railway.app`
+2. This URL is used by:
+   - cucumber-web (`NEXT_PUBLIC_API_URL`)
+   - cucumber-cortex (`CEREBELLUM_URL`)
+   - cucumber-admin (`NEXT_PUBLIC_API_URL`)
+
+### Private Networking (Optional)
+For internal service communication, use Railway's private network:
+- Private URL: `cerebellum.railway.internal:3001`
+- Only accessible within the same Railway project
+- Reduces latency and costs for Cortex → Cerebellum calls
+
 ## Related Repositories
 
 | Repository | Description | Communication |

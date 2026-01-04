@@ -68,7 +68,7 @@ export class TickScheduler {
 
     agentTimer.timerId = setInterval(() => {
       this.tickAgent(roundId, agentId).catch((error) => {
-        logger.error(`Tick error for agent ${agentId}:`, error);
+        logger.error({ agentId, error }, 'Tick error for agent');
       });
     }, intervalMs);
 
@@ -77,7 +77,7 @@ export class TickScheduler {
     const existingTicks = await tickRepository.getAgentTicksByRound(agentId, roundId);
     if (existingTicks.length === 0) {
       this.tickAgent(roundId, agentId).catch((error) => {
-        logger.error(`Initial tick error for agent ${agentId}:`, error);
+        logger.error({ agentId, error }, 'Initial tick error for agent');
       });
     }
 
@@ -230,6 +230,38 @@ export class TickScheduler {
 
   getTimerInfo(roundId: string): Map<string, AgentTimer> | undefined {
     return this.agentTimers.get(roundId);
+  }
+
+  // Backward compatibility methods
+  async start(roundId: string): Promise<void> {
+    return this.startRound(roundId);
+  }
+
+  stop(): void {
+    // Stop all active rounds
+    for (const roundId of this.roundActive.keys()) {
+      this.stopRound(roundId);
+    }
+  }
+
+  isRunning(): boolean {
+    // Check if any round is running
+    for (const isActive of this.roundActive.values()) {
+      if (isActive) return true;
+    }
+    return false;
+  }
+
+  async triggerTick(): Promise<void> {
+    // Trigger ticks for all agents in all active rounds
+    for (const [roundId, isActive] of this.roundActive.entries()) {
+      if (!isActive) continue;
+      const roundTimers = this.agentTimers.get(roundId);
+      if (!roundTimers) continue;
+      for (const agentId of roundTimers.keys()) {
+        await this.tickAgent(roundId, agentId);
+      }
+    }
   }
 }
 

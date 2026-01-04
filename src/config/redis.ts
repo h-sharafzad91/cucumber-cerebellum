@@ -16,13 +16,14 @@ export async function initRedis(): Promise<void> {
   });
 
   redis.on('error', (error) => {
-    logger.error('Redis error:', error);
+    logger.error({ error }, 'Redis error');
   });
 
   await redis.ping();
 }
 
-export function getRedis(): Redis | null {
+export function getRedis(): Redis {
+  if (!redis) throw new Error('Redis not initialized');
   return redis;
 }
 
@@ -37,7 +38,7 @@ export function getSubscriber(): Redis {
     });
 
     subscriber.on('error', (error) => {
-      logger.error('Redis subscriber error:', error);
+      logger.error({ error }, 'Redis subscriber error');
     });
   }
   return subscriber;
