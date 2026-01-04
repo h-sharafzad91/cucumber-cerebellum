@@ -16,8 +16,8 @@ RUN npm run build
 RUN npm prune --production
 
 ENV NODE_ENV=production
-ENV PORT=3001
 
-EXPOSE 3001
+# Railway injects PORT at runtime, expose common ports
+EXPOSE 3001 8080
 
 CMD ["node", "dist/index.js"]
