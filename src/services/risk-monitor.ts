@@ -234,7 +234,7 @@ export class RiskMonitor {
       slippage: 0,
       gas_used: '0',
       tx_hash: null,
-      status: 'confirmed',
+      status: 'confirmed' as const,
       error_message: null,
       created_at: new Date().toISOString(),
       confirmed_at: new Date().toISOString(),
