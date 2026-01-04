@@ -1,7 +1,6 @@
 import {
   createWalletClient,
   http,
-  type WalletClient,
   type Hash,
   type TransactionRequest,
 } from 'viem';
@@ -12,8 +11,8 @@ import { logger } from '../utils/logger.js';
 import { ExecutionError } from '../utils/errors.js';
 
 export class SignerService {
-  private walletClient: WalletClient;
-  private account;
+  private walletClient: any;
+  private account: any;
 
   constructor() {
     this.account = privateKeyToAccount(config.blockchain.signerPrivateKey);
@@ -22,7 +21,7 @@ export class SignerService {
       account: this.account,
       chain: baseSepolia,
       transport: http(config.blockchain.rpcUrl),
-    });
+    } as any);
 
     logger.info(`Signer initialized with address: ${this.account.address}`);
   }
@@ -44,7 +43,7 @@ export class SignerService {
         gas: tx.gas,
         maxFeePerGas: tx.maxFeePerGas,
         maxPriorityFeePerGas: tx.maxPriorityFeePerGas,
-      });
+      } as any);
 
       logger.info(`Transaction sent: ${hash}`);
       return hash;

@@ -79,7 +79,7 @@ export class MarketDataService {
       throw new Error(`Binance API error: ${response.status}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { price: string };
     return parseFloat(data.price);
   }
 
@@ -103,7 +103,7 @@ export class MarketDataService {
         throw new Error(`Binance candles API error: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as any[];
 
       return data.map((candle: any[]) => ({
         timestamp: new Date(candle[0]).toISOString(),
