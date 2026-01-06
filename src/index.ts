@@ -1,3 +1,4 @@
+// Cerebellum
 import * as Sentry from '@sentry/node';
 import { createServer } from './api/server.js';
 import { initWebSocket } from './api/websocket.js';
