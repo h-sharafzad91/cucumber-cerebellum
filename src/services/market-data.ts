@@ -2,7 +2,7 @@ import { logger } from '../utils/logger.js';
 import type { MarketData, Candle } from '../types/tick.js';
 
 const PYTH_HERMES_URL = 'https://hermes.pyth.network';
-const BINANCE_API_URL = 'https://api.binance.com';
+const BINANCE_API_URL = 'https://api.binance.us';
 
 const ETH_USD_FEED_ID = '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace';
 
