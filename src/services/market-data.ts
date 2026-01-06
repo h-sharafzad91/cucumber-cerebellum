@@ -100,7 +100,8 @@ export class MarketDataService {
       );
 
       if (!response.ok) {
-        throw new Error(`Binance candles API error: ${response.status}`);
+        const text = await response.text();
+        throw new Error(`Binance candles API error: ${response.status} - ${text}`);
       }
 
       const data = await response.json() as any[];
@@ -114,7 +115,8 @@ export class MarketDataService {
         volume: parseFloat(candle[5]),
       }));
     } catch (error) {
-      logger.error({ error, interval }, `Failed to fetch ${interval} candles`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error({ error: errorMessage, interval }, `Failed to fetch ${interval} candles`);
       return [];
     }
   }
