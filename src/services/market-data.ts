@@ -73,7 +73,7 @@ export class MarketDataService {
   }
 
   private async fetchBinancePrice(): Promise<number> {
-    const response = await fetch(`${BINANCE_API_URL}/api/v3/ticker/price?symbol=ETHUSDC`);
+    const response = await fetch(`${BINANCE_API_URL}/api/v3/ticker/price?symbol=ETHUSD`);
 
     if (!response.ok) {
       throw new Error(`Binance API error: ${response.status}`);
@@ -96,7 +96,7 @@ export class MarketDataService {
   private async fetchBinanceCandles(interval: string, limit: number = 50): Promise<Candle[]> {
     try {
       const response = await fetch(
-        `${BINANCE_API_URL}/api/v3/klines?symbol=ETHUSDC&interval=${interval}&limit=${limit}`
+        `${BINANCE_API_URL}/api/v3/klines?symbol=ETHUSD&interval=${interval}&limit=${limit}`
       );
 
       if (!response.ok) {
