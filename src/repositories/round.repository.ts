@@ -54,13 +54,14 @@ class RoundRepository {
       .from('arena_rounds')
       .select('*')
       .eq('status', 'active')
-      .single();
+      .order('start_time', { ascending: false })
+      .limit(1);
 
-    if (error) {
+    if (error || !data || data.length === 0) {
       return null;
     }
 
-    return data;
+    return data[0];
   }
 
   async create(input: CreateRoundInput): Promise<ArenaRound> {
