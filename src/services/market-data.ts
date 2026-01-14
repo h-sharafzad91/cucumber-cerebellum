@@ -1,12 +1,14 @@
 import { logger } from '../utils/logger.js';
-import type { MarketData, Candle } from '../types/tick.js';
+import type { MarketData, Candle, PricePoint } from '../types/tick.js';
 
 const PYTH_HERMES_URL = 'https://hermes.pyth.network';
 const BINANCE_API_URL = 'https://api.binance.us';
 
 const ETH_USD_FEED_ID = '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace';
+const MAX_PRICE_HISTORY = 20;
 
 export class MarketDataService {
+  private priceHistory: PricePoint[] = [];
   async getCurrentPrice(asset: string): Promise<number> {
     if (asset === 'ETH') {
       const { price } = await this.getEthPrice();
@@ -19,17 +21,32 @@ export class MarketDataService {
   }
 
   async getSnapshot(): Promise<MarketData> {
-    const [price, candles] = await Promise.all([
+    const [priceData, candles] = await Promise.all([
       this.getEthPrice(),
       this.getCandles(),
     ]);
 
+    this.addPriceToHistory(priceData.price);
+
     return {
-      ETH_USDC: price,
+      ETH_USDC: {
+        ...priceData,
+        price_history: [...this.priceHistory],
+      },
       candles: {
         ETH_USDC: candles,
       },
     };
+  }
+
+  private addPriceToHistory(price: number): void {
+    this.priceHistory.push({
+      price,
+      timestamp: new Date().toISOString(),
+    });
+    if (this.priceHistory.length > MAX_PRICE_HISTORY) {
+      this.priceHistory.shift();
+    }
   }
 
   private async getEthPrice(): Promise<{ price: number; source: 'pyth' | 'binance' }> {

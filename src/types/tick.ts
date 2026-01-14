@@ -18,6 +18,12 @@ export interface PriceData {
   price: number;
   source: 'pyth' | 'binance';
   confidence?: number;
+  price_history?: PricePoint[];
+}
+
+export interface PricePoint {
+  price: number;
+  timestamp: string;
 }
 
 export interface CandleData {
