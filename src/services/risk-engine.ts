@@ -142,7 +142,13 @@ export class RiskEngine {
         violations.push(`No position in ${action.asset} to sell`);
       } else if (action.size_asset) {
         if (position.size < action.size_asset) {
-          violations.push(`Insufficient position: have ${position.size} ${action.asset}, want to sell ${action.size_asset}`);
+          const diff = action.size_asset - position.size;
+          const tolerance = position.size * 0.01;
+          if (diff <= tolerance) {
+            action.size_asset = position.size;
+          } else {
+            violations.push(`Insufficient position: have ${position.size} ${action.asset}, want to sell ${action.size_asset}`);
+          }
         }
       } else if (action.size_usd) {
         const positionValue = position.size * (position.current_price || position.entry_price);

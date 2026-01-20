@@ -64,7 +64,14 @@ export class ActionValidator {
           if (!position) {
             errors.push(`No position found for ${action.asset}`);
           } else if (action.size_asset && position.size < action.size_asset) {
-            errors.push(`Insufficient position: ${position.size} ${action.asset} < ${action.size_asset} ${action.asset}`);
+            const diff = action.size_asset - position.size;
+            const tolerance = position.size * 0.01;
+            if (diff <= tolerance) {
+              action.size_asset = position.size;
+              logger.info(`Auto-adjusted sell size from ${action.size_asset + diff} to ${position.size} for agent ${action.agent_id}`);
+            } else {
+              errors.push(`Insufficient position: ${position.size} ${action.asset} < ${action.size_asset} ${action.asset}`);
+            }
           }
         }
       }
