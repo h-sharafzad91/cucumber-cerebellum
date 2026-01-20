@@ -47,6 +47,11 @@ export async function roundRoutes(fastify: FastifyInstance) {
     return { round };
   });
 
+  fastify.get('/active-all', async () => {
+    const rounds = await roundRepository.findAllActive();
+    return { rounds };
+  });
+
   fastify.get<{ Params: { id: string } }>('/:id', async (request) => {
     const { id } = request.params;
     const round = await roundRepository.findById(id);

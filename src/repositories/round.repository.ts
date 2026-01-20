@@ -64,6 +64,21 @@ class RoundRepository {
     return data[0];
   }
 
+  async findAllActive(): Promise<ArenaRound[]> {
+    const db = getDatabase();
+    const { data, error } = await db
+      .from('arena_rounds')
+      .select('*')
+      .eq('status', 'active')
+      .order('start_time', { ascending: false });
+
+    if (error || !data) {
+      return [];
+    }
+
+    return data;
+  }
+
   async create(input: CreateRoundInput): Promise<ArenaRound> {
     const db = getDatabase();
 
