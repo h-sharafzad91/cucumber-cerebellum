@@ -84,7 +84,6 @@ class AgentRepository {
       avatar_id: input.avatar_id || null,
       llm_model: selectedModel,
       trading_style: input.trading_style || 'normal',
-      is_active: false,
       is_locked: false,
     };
 
@@ -122,7 +121,6 @@ class AgentRepository {
     if (input.take_profit_percent !== undefined) updateData.take_profit_percent = input.take_profit_percent;
     if (input.take_profit_position_close_percent !== undefined) updateData.take_profit_position_close_percent = input.take_profit_position_close_percent;
     if (input.trading_style !== undefined) updateData.trading_style = input.trading_style;
-    if (input.is_active !== undefined) updateData.is_active = input.is_active;
 
     const { data, error } = await db
       .from('agents')

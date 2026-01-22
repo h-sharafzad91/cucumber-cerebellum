@@ -10,8 +10,9 @@ export interface TickPayload {
 }
 
 export interface MarketData {
-  ETH_USDC: PriceData;
-  candles: CandleData;
+  [pairKey: string]: PriceData | CandlesByPair | string | undefined;
+  candles: CandlesByPair;
+  trading_pair?: string;
 }
 
 export interface PriceData {
@@ -26,13 +27,16 @@ export interface PricePoint {
   timestamp: string;
 }
 
-export interface CandleData {
-  ETH_USDC: {
+export interface CandlesByPair {
+  [pairKey: string]: {
     m1: Candle[];
     m5: Candle[];
     h1: Candle[];
   };
 }
+
+// Legacy type for backward compatibility
+export interface CandleData extends CandlesByPair {}
 
 export interface Candle {
   timestamp: string;

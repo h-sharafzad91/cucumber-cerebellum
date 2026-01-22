@@ -12,7 +12,7 @@ import type { Agent } from '../types/agent.js';
 
 const DEFAULT_SETTINGS: RoundSettings = {
   max_agents: 10,
-  allowed_assets: ['ETH', 'USDC'],
+  allowed_assets: ['BTC', 'ETH', 'SOL', 'AVAX', 'MATIC', 'LINK', 'UNI', 'AAVE', 'DOT', 'ATOM', 'XRP', 'ADA', 'DOGE', 'SHIB', 'USDT', 'USDC'],
   max_order_usd: 2000,
   initial_balance: 10000,
 };
@@ -258,7 +258,10 @@ class RoundRepository {
       const { tickRepository } = await import('./tick.repository.js');
       const { marketDataService } = await import('../services/market-data.js');
 
-      const currentPrice = await marketDataService.getCurrentPrice('ETH');
+      // Fetch round to get trading pair
+      const round = await this.findById(roundId);
+      const tradingPair = round.trading_pair || 'BTC/USDT';
+      const currentPrice = await marketDataService.getPriceForPair(tradingPair);
 
       for (const participant of participants) {
         const positions = await tickRepository.getAgentPositions(

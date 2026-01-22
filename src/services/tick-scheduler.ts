@@ -133,7 +133,12 @@ export class TickScheduler {
     logger.info(`Tick #${agentTimer.tickNumber} for agent ${agentId} in round ${roundId}`);
 
     try {
-      const market = await marketDataService.getSnapshot();
+      // Get round info to determine trading pair
+      const round = await roundRepository.findById(roundId);
+      const tradingPair = round.trading_pair || 'BTC/USDT';
+      const pairKey = tradingPair.replace('/', '_');
+
+      const market = await marketDataService.getSnapshotForPair(tradingPair);
       const participant = await roundRepository.getParticipantByAgent(roundId, agentId);
 
       if (!participant) {
@@ -142,11 +147,13 @@ export class TickScheduler {
         return;
       }
 
+      const priceData = market[pairKey] as { price: number };
+      const currentPrice = priceData?.price || 0;
+
       const currentPrices: Record<string, number> = {
-        ETH_USDC: market.ETH_USDC.price,
+        [pairKey]: currentPrice,
       };
 
-      const currentPrice = market.ETH_USDC.price;
       const positions = await tickRepository.getAgentPositions(agentId, roundId, currentPrice);
 
       const riskCheck = await riskMonitor.checkPositionRisks(agentId, roundId, positions, currentPrices);
@@ -193,7 +200,8 @@ export class TickScheduler {
         agent_id: agentId,
         tick_number: agentTimer.tickNumber,
         timestamp,
-        market_price: market.ETH_USDC.price,
+        market_price: currentPrice,
+        trading_pair: tradingPair,
       });
 
       const leaderboard = await roundRepository.getLeaderboard(roundId);

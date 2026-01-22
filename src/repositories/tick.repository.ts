@@ -245,6 +245,42 @@ class TickRepository {
       };
     });
   }
+
+  async getAgentPerformanceHistory(agentId: string, roundId: string, initialBalance: number): Promise<any[]> {
+    const db = getDatabase();
+
+    const { data, error } = await db
+      .from('agent_ticks')
+      .select('*')
+      .eq('agent_id', agentId)
+      .eq('round_id', roundId)
+      .order('tick_timestamp', { ascending: true });
+
+    if (error) {
+      logger.error('Failed to fetch agent performance history:', error);
+      return [];
+    }
+
+    let cumulativePnl = 0;
+    return (data || []).map((tick: any, index: number) => {
+      const pnlImpact = tick.pnl_impact || 0;
+      cumulativePnl += pnlImpact;
+      const stateSnapshot = tick.state_snapshot || {};
+      const actionTaken = tick.action_taken || {};
+
+      return {
+        tick_number: index + 1,
+        timestamp: tick.tick_timestamp,
+        realized_pnl: cumulativePnl,
+        pnl_impact: pnlImpact,
+        balance: stateSnapshot.balance || initialBalance + cumulativePnl,
+        portfolio_value: stateSnapshot.balance || initialBalance + cumulativePnl,
+        action: actionTaken.action || 'HOLD',
+        asset: actionTaken.asset,
+        size_usd: actionTaken.size_usd,
+      };
+    });
+  }
 }
 
 export const tickRepository = new TickRepository();

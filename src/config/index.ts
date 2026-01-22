@@ -62,7 +62,7 @@ export const config = {
   arena: {
     tickInterval: 120,
     maxOrderUsd: 2000,
-    allowedAssets: ['ETH', 'USDC'] as const,
+    allowedAssets: ['BTC', 'ETH', 'SOL', 'AVAX', 'MATIC', 'LINK', 'UNI', 'AAVE', 'DOT', 'ATOM', 'XRP', 'ADA', 'DOGE', 'SHIB', 'USDT', 'USDC'] as const,
     paperTrading: parsed.data.PAPER_TRADING === 'true',
     initialBalance: 10000,
   },

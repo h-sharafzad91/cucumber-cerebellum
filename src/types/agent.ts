@@ -52,7 +52,6 @@ export interface Agent {
   take_profit_position_close_percent?: number;
   risk_reward_ratio?: number;
   avatar_id?: string;
-  is_active?: boolean;
   is_locked?: boolean;
   llm_model?: LLMModel;
   trading_style?: 'paper_hands' | 'normal' | 'degen';
@@ -102,5 +101,4 @@ export interface UpdateAgentInput {
   take_profit_percent?: number;
   take_profit_position_close_percent?: number;
   trading_style?: 'paper_hands' | 'normal' | 'degen';
-  is_active?: boolean;
 }

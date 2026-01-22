@@ -46,7 +46,6 @@ interface UpdateAgentBody {
   take_profit_percent?: number;
   take_profit_position_close_percent?: number;
   trading_style?: TradingStyle;
-  is_active?: boolean;
 }
 
 interface StrategySummaryBody {
@@ -182,18 +181,6 @@ export async function agentRoutes(fastify: FastifyInstance) {
       return { reasoning };
     }
   );
-
-  fastify.post<{ Params: { id: string } }>('/:id/activate', async (request) => {
-    const { id } = request.params;
-    const agent = await agentRepository.update(id, { is_active: true });
-    return { agent, message: 'Agent activated successfully' };
-  });
-
-  fastify.post<{ Params: { id: string } }>('/:id/deactivate', async (request) => {
-    const { id } = request.params;
-    const agent = await agentRepository.update(id, { is_active: false });
-    return { agent, message: 'Agent deactivated successfully' };
-  });
 
   fastify.get<{ Params: { id: string } }>('/:id/active-round', async (request) => {
     const { id } = request.params;
