@@ -158,7 +158,7 @@ cucumber-cerebellum/
 │   │   ├── risk-engine.ts          # Position risk calculations
 │   │   ├── stop-loss-engine.ts     # Stop-loss logic
 │   │   ├── take-profit-engine.ts   # Take-profit logic
-│   │   ├── market-data.ts          # Price feed service
+│   │   ├── market-data.ts          # Multi-pair price feed (Pyth + Binance)
 │   │   ├── matchmaking.ts          # Quick contest matching
 │   │   ├── settlement-engine.ts    # Round settlement & payouts
 │   │   ├── betting.ts              # Side betting logic
@@ -173,7 +173,7 @@ cucumber-cerebellum/
 │   ├── repositories/
 │   │   ├── agent.repository.ts     # Agent CRUD + tick_interval
 │   │   ├── round.repository.ts     # Round + participant management
-│   │   ├── tick.repository.ts      # Tick & position storage
+│   │   ├── tick.repository.ts      # Tick storage + performance history
 │   │   └── payout.repository.ts    # Payout records
 │   │
 │   ├── config/
@@ -323,11 +323,30 @@ When Cortex sends a trade action back:
 | GET | `/v1/arena/:roundId/scheduler` | Get scheduler status |
 | POST | `/v1/arena/:roundId/resume` | Resume tick scheduler |
 | POST | `/v1/arena/:roundId/pause` | Pause tick scheduler |
+| GET | `/v1/arena/:roundId/performance/:agentId` | Get agent tick-by-tick P&L history |
 
 ### Leaderboard
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/v1/leaderboard/:roundId` | Get round leaderboard |
+
+### Performance History
+
+The performance endpoint returns tick-by-tick P&L data for charting:
+
+```typescript
+interface PerformanceDataPoint {
+  tick_number: number;
+  timestamp: string;
+  realized_pnl: number;      // Cumulative realized P&L
+  pnl_impact: number;        // P&L change from this tick
+  balance: number;           // Current cash balance
+  portfolio_value: number;   // Total portfolio value
+  action: string;            // BUY_MARKET, SELL_MARKET, or HOLD
+  asset?: string;            // Traded asset (if any)
+  size_usd?: number;         // Trade size (if any)
+}
+```
 
 ## WebSocket Events
 
