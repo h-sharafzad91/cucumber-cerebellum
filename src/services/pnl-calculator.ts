@@ -60,6 +60,59 @@ export class PnLCalculator {
           unrealized_pnl: unrealizedPnl,
         });
       }
+    } else if (trade.action === 'SHORT_MARKET') {
+      newBalance -= trade.size_usd;
+
+      const existingIdx = newPositions.findIndex((p) => p.asset === trade.asset && p.direction === 'short');
+      if (existingIdx >= 0) {
+        const existing = newPositions[existingIdx];
+        const totalSize = existing.size + trade.size_asset;
+        const avgPrice =
+          (existing.size * existing.entry_price + trade.size_asset * trade.execution_price) /
+          totalSize;
+
+        const unrealizedPnl = totalSize * (avgPrice - currentPrice);
+        newPositions[existingIdx] = {
+          ...existing,
+          size: totalSize,
+          entry_price: avgPrice,
+          current_price: currentPrice,
+          unrealized_pnl: unrealizedPnl,
+        };
+      } else {
+        const unrealizedPnl = trade.size_asset * (trade.execution_price - currentPrice);
+        newPositions.push({
+          asset: trade.asset,
+          size: trade.size_asset,
+          entry_price: trade.execution_price,
+          current_price: currentPrice,
+          unrealized_pnl: unrealizedPnl,
+          direction: 'short',
+        });
+      }
+    } else if (trade.action === 'COVER_MARKET') {
+      const existingIdx = newPositions.findIndex((p) => p.asset === trade.asset && p.direction === 'short');
+      if (existingIdx >= 0) {
+        const existing = newPositions[existingIdx];
+
+        realizedPnl = trade.size_asset * (existing.entry_price - trade.execution_price);
+        const marginCollateral = trade.size_asset * existing.entry_price;
+        newBalance += marginCollateral + realizedPnl;
+
+        const newSize = existing.size - trade.size_asset;
+
+        if (newSize <= 0.0001) {
+          newPositions.splice(existingIdx, 1);
+        } else {
+          const unrealizedPnl = newSize * (existing.entry_price - currentPrice);
+          newPositions[existingIdx] = {
+            ...existing,
+            size: newSize,
+            current_price: currentPrice,
+            unrealized_pnl: unrealizedPnl,
+          };
+        }
+      }
     } else if (trade.action === 'SELL_MARKET') {
       newBalance += trade.size_usd;
 
@@ -99,7 +152,9 @@ export class PnLCalculator {
   calculateUnrealizedPnL(positions: Position[], currentPrice: number): number {
     return positions.reduce((total, position) => {
       const price = position.current_price || currentPrice;
-      const unrealized = position.size * (price - position.entry_price);
+      const unrealized = position.direction === 'short'
+        ? position.size * (position.entry_price - price)
+        : position.size * (price - position.entry_price);
       return total + unrealized;
     }, 0);
   }
@@ -107,6 +162,10 @@ export class PnLCalculator {
   calculateTotalValue(balance: number, positions: Position[], currentPrice: number): number {
     const positionsValue = positions.reduce((total, position) => {
       const price = position.current_price || currentPrice;
+      if (position.direction === 'short') {
+        const unrealized = position.size * (position.entry_price - price);
+        return total + position.size * position.entry_price + unrealized;
+      }
       return total + position.size * price;
     }, 0);
 

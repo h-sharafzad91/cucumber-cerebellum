@@ -114,7 +114,7 @@ export class RiskEngine {
       );
     }
 
-    if (action.action === 'BUY_MARKET' && action.size_usd && action.asset) {
+    if ((action.action === 'BUY_MARKET' || action.action === 'SHORT_MARKET') && action.size_usd && action.asset) {
       const existingPosition = portfolio.positions.find((p) => p.asset === action.asset);
       const existingValue = existingPosition
         ? existingPosition.size * (existingPosition.current_price || existingPosition.entry_price)
@@ -130,14 +130,28 @@ export class RiskEngine {
       }
     }
 
-    if (action.action === 'BUY_MARKET' && action.size_usd) {
+    if ((action.action === 'BUY_MARKET' || action.action === 'SHORT_MARKET') && action.size_usd) {
       if (portfolio.balance_usd < action.size_usd) {
         violations.push(`Insufficient balance: need ${action.size_usd}, have ${portfolio.balance_usd}`);
       }
     }
 
+    if (action.action === 'BUY_MARKET' && action.asset) {
+      const shortPosition = portfolio.positions.find((p) => p.asset === action.asset && p.direction === 'short');
+      if (shortPosition) {
+        violations.push(`Cannot buy ${action.asset} while holding a short position`);
+      }
+    }
+
+    if (action.action === 'SHORT_MARKET' && action.asset) {
+      const longPosition = portfolio.positions.find((p) => p.asset === action.asset && p.direction !== 'short');
+      if (longPosition) {
+        violations.push(`Cannot short ${action.asset} while holding a long position`);
+      }
+    }
+
     if (action.action === 'SELL_MARKET' && action.asset) {
-      const position = portfolio.positions.find((p) => p.asset === action.asset);
+      const position = portfolio.positions.find((p) => p.asset === action.asset && p.direction !== 'short');
       if (!position) {
         violations.push(`No position in ${action.asset} to sell`);
       } else if (action.size_asset) {
@@ -154,6 +168,23 @@ export class RiskEngine {
         const positionValue = position.size * (position.current_price || position.entry_price);
         if (positionValue < action.size_usd) {
           violations.push(`Position value ${positionValue.toFixed(2)} insufficient for sell of ${action.size_usd}`);
+        }
+      }
+    }
+
+    if (action.action === 'COVER_MARKET' && action.asset) {
+      const shortPosition = portfolio.positions.find((p) => p.asset === action.asset && p.direction === 'short');
+      if (!shortPosition) {
+        violations.push(`No short position in ${action.asset} to cover`);
+      } else if (action.size_asset) {
+        if (shortPosition.size < action.size_asset) {
+          const diff = action.size_asset - shortPosition.size;
+          const tolerance = shortPosition.size * 0.01;
+          if (diff <= tolerance) {
+            action.size_asset = shortPosition.size;
+          } else {
+            violations.push(`Insufficient short position: have ${shortPosition.size} ${action.asset}, want to cover ${action.size_asset}`);
+          }
         }
       }
     }
@@ -188,6 +219,10 @@ export class RiskEngine {
   private calculateTotalPortfolioValue(portfolio: Portfolio): number {
     const positionsValue = portfolio.positions.reduce((sum, position) => {
       const price = position.current_price || position.entry_price;
+      if (position.direction === 'short') {
+        const unrealized = position.size * (position.entry_price - price);
+        return sum + position.size * position.entry_price + unrealized;
+      }
       return sum + position.size * price;
     }, 0);
 

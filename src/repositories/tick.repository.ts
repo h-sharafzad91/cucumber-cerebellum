@@ -137,7 +137,10 @@ class TickRepository {
 
     return (data || []).map((p: any) => {
       const price = currentPrice || p.current_price;
-      const unrealized = p.size * (price - p.entry_price);
+      const direction = p.position_type || 'long';
+      const unrealized = direction === 'short'
+        ? p.size * (p.entry_price - price)
+        : p.size * (price - p.entry_price);
 
       return {
         asset: p.asset,
@@ -145,6 +148,7 @@ class TickRepository {
         entry_price: p.entry_price,
         current_price: price,
         unrealized_pnl: unrealized,
+        direction,
       };
     });
   }
@@ -172,6 +176,7 @@ class TickRepository {
           entry_price: p.entry_price,
           current_price: p.current_price,
           unrealized_pnl: p.unrealized_pnl,
+          position_type: p.direction || 'long',
         }))
       );
 

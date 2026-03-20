@@ -44,7 +44,7 @@ export class RiskMonitor {
       const currentPrice = currentPrices[position.asset];
       if (!currentPrice) continue;
 
-      const positionDirection = position.size > 0 ? 'long' : 'short';
+      const positionDirection = position.direction || 'long';
 
       if (agent.leverage && agent.leverage > 1) {
         const liqCheck = leverageCalculator.checkLiquidation(
@@ -197,19 +197,24 @@ export class RiskMonitor {
       return;
     }
 
-    const isLong = position.size > 0;
+    const isShort = position.direction === 'short';
     const closeSize = Math.min(size, Math.abs(position.size));
-    const pnl = (price - position.entry_price) * (isLong ? closeSize : -closeSize);
-    const newBalance = participant.current_balance + (closeSize * price) + pnl;
+    const pnl = isShort
+      ? closeSize * (position.entry_price - price)
+      : closeSize * (price - position.entry_price);
+    const newBalance = isShort
+      ? participant.current_balance + (closeSize * position.entry_price) + pnl
+      : participant.current_balance + (closeSize * price);
 
-    const newSize = isLong ? position.size - closeSize : position.size + closeSize;
-    const updatedPositions = newSize !== 0
+    const newSize = position.size - closeSize;
+    const matchesPosition = (p: Position) => p.asset === asset && (p.direction || 'long') === (position.direction || 'long');
+    const updatedPositions = newSize > 0.0001
       ? positions.map((p) =>
-          p.asset === asset
+          matchesPosition(p)
             ? { ...p, size: newSize, current_price: price }
             : p
         )
-      : positions.filter((p) => p.asset !== asset);
+      : positions.filter((p) => !matchesPosition(p));
 
     await tickRepository.updatePositions(agentId, roundId, updatedPositions);
 
@@ -221,12 +226,14 @@ export class RiskMonitor {
       1
     );
 
+    const closeAction = isShort ? 'COVER_MARKET' as const : 'SELL_MARKET' as const;
+
     const tradeResult = {
       trade_id: uuidv4(),
       agent_id: agentId,
       round_id: roundId,
       tick_id: tickId,
-      action: 'SELL_MARKET' as const,
+      action: closeAction,
       asset,
       size_usd: closeSize * price,
       size_asset: closeSize,
@@ -247,7 +254,7 @@ export class RiskMonitor {
       round_id: roundId,
       agent_id: agentId,
       trade_id: tradeResult.trade_id,
-      action: 'SELL_MARKET',
+      action: closeAction,
       asset,
       size_usd: closeSize * price,
       execution_price: price,
@@ -256,9 +263,14 @@ export class RiskMonitor {
     });
 
     const currentPositions = await tickRepository.getAgentPositions(agentId, roundId);
-    const totalValue = participant.current_balance + currentPositions.reduce((sum, p) =>
-      sum + (p.size * (p.current_price || p.entry_price)), 0
-    );
+    const posPrice = price;
+    const totalValue = participant.current_balance + currentPositions.reduce((sum, p) => {
+      if (p.direction === 'short') {
+        const unrealized = p.size * (p.entry_price - posPrice);
+        return sum + p.size * p.entry_price + unrealized;
+      }
+      return sum + (p.size * posPrice);
+    }, 0);
 
     broadcastPositionUpdate(roundId, agentId, {
       round_id: roundId,

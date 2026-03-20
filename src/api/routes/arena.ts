@@ -14,7 +14,7 @@ interface ActionBody {
   agent_id: string;
   tick_id: string;
   reasoning: string;
-  action: 'BUY_MARKET' | 'SELL_MARKET' | 'HOLD';
+  action: 'BUY_MARKET' | 'SELL_MARKET' | 'SHORT_MARKET' | 'COVER_MARKET' | 'HOLD';
   asset?: string;
   size_usd?: number;
   size_asset?: number;

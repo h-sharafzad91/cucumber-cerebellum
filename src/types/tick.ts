@@ -58,6 +58,7 @@ export interface Position {
   entry_price: number;
   current_price?: number;
   unrealized_pnl?: number;
+  direction?: 'long' | 'short';
 }
 
 export interface Constraints {

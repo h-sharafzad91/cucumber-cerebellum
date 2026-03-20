@@ -1,4 +1,4 @@
-export type ActionType = 'BUY_MARKET' | 'SELL_MARKET' | 'HOLD';
+export type ActionType = 'BUY_MARKET' | 'SELL_MARKET' | 'SHORT_MARKET' | 'COVER_MARKET' | 'HOLD';
 
 export interface AgentAction {
   agent_id: string;

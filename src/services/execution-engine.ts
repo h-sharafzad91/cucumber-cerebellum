@@ -108,12 +108,12 @@ export class ExecutionEngine {
     }
 
     if (config.arena.paperTrading) {
-      const isBuy = action.action === 'BUY_MARKET';
+      const isEntry = action.action === 'BUY_MARKET' || action.action === 'SHORT_MARKET';
 
       let sizeAsset: number;
       let sizeUsd: number;
 
-      if (isBuy) {
+      if (isEntry) {
         sizeUsd = action.size_usd || 0;
         sizeAsset = sizeUsd / currentPrice;
       } else {
@@ -140,6 +140,10 @@ export class ExecutionEngine {
         created_at: createdAt,
         confirmed_at: createdAt,
       };
+    }
+
+    if (action.action === 'SHORT_MARKET' || action.action === 'COVER_MARKET') {
+      throw new ExecutionError('On-chain short trading not yet supported');
     }
 
     try {
