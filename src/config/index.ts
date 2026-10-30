@@ -15,8 +15,16 @@ const envSchema = z.object({
   SIGNER_PRIVATE_KEY: z.string(),
   ALLOWED_ORIGINS: z.string().default('http://localhost:3000'),
   CORTEX_URL: z.string().default('http://localhost:8000'),
-  PAPER_TRADING: z.string().default('true'),
+  PAPER_TRADING: z.enum(['true', 'false']).optional(),
   SENTRY_DSN: z.string().optional(),
+}).superRefine((values, context) => {
+  if (values.NODE_ENV === 'production' && values.PAPER_TRADING === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['PAPER_TRADING'],
+      message: 'PAPER_TRADING must be explicitly set to true or false in production',
+    });
+  }
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -63,7 +71,9 @@ export const config = {
     tickInterval: 120,
     maxOrderUsd: 2000,
     allowedAssets: ['BTC', 'ETH', 'SOL', 'AVAX', 'MATIC', 'LINK', 'UNI', 'AAVE', 'DOT', 'ATOM', 'XRP', 'ADA', 'DOGE', 'SHIB', 'USDT', 'USDC'] as const,
-    paperTrading: parsed.data.PAPER_TRADING === 'true',
+    paperTrading: parsed.data.PAPER_TRADING === undefined
+      ? parsed.data.NODE_ENV !== 'production'
+      : parsed.data.PAPER_TRADING === 'true',
     initialBalance: 10000,
   },
 
