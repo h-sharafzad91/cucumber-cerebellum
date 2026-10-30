@@ -12,7 +12,7 @@ Backend orchestration service for Cucumber Trading Arena - the central hub that 
 │   ┌──────────────┐         ┌──────────────┐                                │
 │   │ cucumber-web │         │cucumber-admin│                                │
 │   │   (Next.js)  │         │   (Next.js)  │                                │
-│   │   Port 3000  │         │   Port 3002  │                                │
+│   │   Port 3000  │         │   Port 3003  │                                │
 │   └──────┬───────┘         └──────┬───────┘                                │
 │          │ REST API               │ REST API                                │
 │          │ WebSocket              │                                         │
